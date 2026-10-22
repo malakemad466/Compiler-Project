@@ -1,0 +1,10 @@
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.csproj.AssemblyReference.cache
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.Properties.Resources.resources
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.csproj.GenerateResource.cache
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.csproj.CoreCompileInputs.cache
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\bin\Debug\Rynix_Compiler.exe.config
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\bin\Debug\Rynix_Compiler.exe
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\bin\Debug\Rynix_Compiler.pdb
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.exe
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.pdb
+C:\Users\mm\source\repos\Rynix_Compiler\Rynix_Compiler\obj\Debug\Rynix_Compiler.Form1.resources
