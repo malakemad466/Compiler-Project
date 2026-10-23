@@ -1,24 +1,30 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-public enum Token_Class
-{
-    Int, Float, String, Bool, Char, Array,
-
-    // Punctuation and Delimiters
-    Dot, RangeOp, Semicolon, Comma, Colon,
-    LParanthesis, RParanthesis,
-    LBrace, RBrace, LBracket, RBracket,
-    LessThanOp, GreaterThanOp, EqualOp, PlusOp, MinusOp, MultiplyOp, DivideOp,
-
-    LineComment, MultiLineComment, Idenifier, Constant
-}
 
 namespace Rynix_Compiler
 {
+    public enum Token_Class
+    {
+        Int, Float, String, Bool, Char, Array, Void,
+
+        LineComment, MultiLineComment,
+
+        Identifier, number, Constant, StringLiteral, CharLiteral,
+
+        Var, Val, Fun, Class, If, Else, While, For, In,
+        Return, True, False, Null, New, Print, Input,
+        Break, Continue, Init,
+
+        PlusOp, MinusOp, DivideOp, MultiplyOp, ModulusOp,
+        Assign, Less, Greater, Equal, Notequal,
+        Lessorequal, Greaterorequal,
+
+        Dot, Range, Comma, Colon,
+        LParen, RParen, LBrace, RBrace,
+        LBracket, RBracket
+    }
+
     public class Token
     {
         public string lex;
@@ -28,188 +34,553 @@ namespace Rynix_Compiler
     public class Scanner
     {
         public List<Token> Tokens = new List<Token>();
-        Dictionary<string, Token_Class> ReservedWords = new Dictionary<string, Token_Class>();
-        Dictionary<string, Token_Class> Operators = new Dictionary<string, Token_Class>();
+
+        private readonly Dictionary<string, Token_Class> ReservedWords =
+            new Dictionary<string, Token_Class>();
+
+        private readonly Dictionary<string, Token_Class> Operators =
+            new Dictionary<string, Token_Class>();
 
         public Scanner()
         {
+            ReservedWords.Add("Int", Token_Class.Int);
+            ReservedWords.Add("Float", Token_Class.Float);
+            ReservedWords.Add("String", Token_Class.String);
+            ReservedWords.Add("Bool", Token_Class.Bool);
+            ReservedWords.Add("Char", Token_Class.Char);
+            ReservedWords.Add("Array", Token_Class.Array);
+            ReservedWords.Add("Void", Token_Class.Void);
 
-            ReservedWords.Add("INT", Token_Class.Int);
-            ReservedWords.Add("FLOAT", Token_Class.Float);
-            ReservedWords.Add("STRING", Token_Class.String);
-            ReservedWords.Add("BOOL", Token_Class.Bool);
-            ReservedWords.Add("CHAR", Token_Class.Char);
-            ReservedWords.Add("ARRAY", Token_Class.Array);
+            ReservedWords.Add("var", Token_Class.Var);
+            ReservedWords.Add("val", Token_Class.Val);
+            ReservedWords.Add("fun", Token_Class.Fun);
+            ReservedWords.Add("class", Token_Class.Class);
+            ReservedWords.Add("if", Token_Class.If);
+            ReservedWords.Add("else", Token_Class.Else);
+            ReservedWords.Add("while", Token_Class.While);
+            ReservedWords.Add("for", Token_Class.For);
+            ReservedWords.Add("in", Token_Class.In);
+            ReservedWords.Add("return", Token_Class.Return);
+            ReservedWords.Add("true", Token_Class.True);
+            ReservedWords.Add("false", Token_Class.False);
+            ReservedWords.Add("null", Token_Class.Null);
+            ReservedWords.Add("new", Token_Class.New);
+            ReservedWords.Add("print", Token_Class.Print);
+            ReservedWords.Add("input", Token_Class.Input);
+            ReservedWords.Add("break", Token_Class.Break);
+            ReservedWords.Add("continue", Token_Class.Continue);
+            ReservedWords.Add("init", Token_Class.Init);
 
-            Operators.Add(".", Token_Class.Dot);
-            Operators.Add("..", Token_Class.RangeOp);
-            Operators.Add(";", Token_Class.Semicolon);
-            Operators.Add(",", Token_Class.Comma);
-            Operators.Add(":", Token_Class.Colon);
-            Operators.Add("(", Token_Class.LParanthesis);
-            Operators.Add(")", Token_Class.RParanthesis);
-            Operators.Add("{", Token_Class.LBrace);
-            Operators.Add("}", Token_Class.RBrace);
-            Operators.Add("[", Token_Class.LBracket);
-            Operators.Add("]", Token_Class.RBracket);
-            Operators.Add("<", Token_Class.LessThanOp);
-            Operators.Add(">", Token_Class.GreaterThanOp);
-            Operators.Add("=", Token_Class.EqualOp);
             Operators.Add("+", Token_Class.PlusOp);
             Operators.Add("-", Token_Class.MinusOp);
             Operators.Add("*", Token_Class.MultiplyOp);
             Operators.Add("/", Token_Class.DivideOp);
+            Operators.Add("%", Token_Class.ModulusOp);
+            Operators.Add("=", Token_Class.Assign);
+            Operators.Add("<", Token_Class.Less);
+            Operators.Add(">", Token_Class.Greater);
+            Operators.Add("==", Token_Class.Equal);
+            Operators.Add("!=", Token_Class.Notequal);
+            Operators.Add("<=", Token_Class.Lessorequal);
+            Operators.Add(">=", Token_Class.Greaterorequal);
+
+            Operators.Add("..", Token_Class.Range);
+            Operators.Add(".", Token_Class.Dot);
+            Operators.Add(",", Token_Class.Comma);
+            Operators.Add(":", Token_Class.Colon);
+            Operators.Add("(", Token_Class.LParen);
+            Operators.Add(")", Token_Class.RParen);
+            Operators.Add("{", Token_Class.LBrace);
+            Operators.Add("}", Token_Class.RBrace);
+            Operators.Add("[", Token_Class.LBracket);
+            Operators.Add("]", Token_Class.RBracket);
         }
 
         public void StartScanning(string SourceCode)
         {
             Tokens.Clear();
+            Errors.Error_List.Clear();
 
-            for (int i = 0; i < SourceCode.Length; i++)
+            if (SourceCode == null)
+                SourceCode = "";
+
+            int i = 0;
+
+            while (i < SourceCode.Length)
             {
-                int j = i;
-                char CurrentChar = SourceCode[i];
+                char current = SourceCode[i];
 
-
-                if (CurrentChar == ' ' || CurrentChar == '\r' || CurrentChar == '\n' || CurrentChar == '\t')
+                if (char.IsWhiteSpace(current))
+                {
+                    i++;
                     continue;
+                }
 
-                if (CurrentChar == '/')
+                // Comments
+                if (current == '/' && i + 1 < SourceCode.Length)
                 {
-
-                    if (i + 1 < SourceCode.Length && SourceCode[i + 1] == '/')
+                    if (SourceCode[i + 1] == '/')
                     {
-                        string commentLex = "//";
+                        int start = i;
                         i += 2;
-                        while (i < SourceCode.Length && SourceCode[i] != '\n')
+
+                        while (i < SourceCode.Length &&
+                               SourceCode[i] != '\n' &&
+                               SourceCode[i] != '\r')
                         {
-                            commentLex += SourceCode[i];
                             i++;
                         }
-                        Tokens.Add(new Token { lex = commentLex, token_type = Token_Class.LineComment });
+
+                        Tokens.Add(new Token
+                        {
+                            lex = SourceCode.Substring(start, i - start),
+                            token_type = Token_Class.LineComment
+                        });
+
                         continue;
                     }
 
-                    else if (i + 1 < SourceCode.Length && SourceCode[i + 1] == '*')
+                    if (SourceCode[i + 1] == '*')
                     {
-                        string commentLex = "/*";
+                        int start = i;
                         i += 2;
-                        while (i + 1 < SourceCode.Length && !(SourceCode[i] == '*' && SourceCode[i + 1] == '/'))
+                        bool closed = false;
+
+                        while (i + 1 < SourceCode.Length)
                         {
-                            commentLex += SourceCode[i];
+                            if (SourceCode[i] == '*' &&
+                                SourceCode[i + 1] == '/')
+                            {
+                                i += 2;
+                                closed = true;
+                                break;
+                            }
+
                             i++;
                         }
-                        commentLex += "*/";
-                        i += 2; 
-                        Tokens.Add(new Token { lex = commentLex, token_type = Token_Class.MultiLineComment });
+
+                        if (!closed)
+                        {
+                            AddError(
+                                "Unclosed multiline comment",
+                                SourceCode,
+                                start);
+
+                            // The rest of the file belongs to this comment.
+                            break;
+                        }
+
+                        Tokens.Add(new Token
+                        {
+                            lex = SourceCode.Substring(start, i - start),
+                            token_type = Token_Class.MultiLineComment
+                        });
+
                         continue;
                     }
                 }
 
-
-                if ((CurrentChar >= 'A' && CurrentChar <= 'Z') || (CurrentChar >= 'a' && CurrentChar <= 'z') || CurrentChar == '_')
+                // Identifiers and reserved words
+                if (IsLetter(current) || current == '_')
                 {
-                    string CurrentLexeme = CurrentChar.ToString();
-                    j = i + 1;
-                    while (j < SourceCode.Length && ((SourceCode[j] >= 'A' && SourceCode[j] <= 'Z') ||
-                                                      (SourceCode[j] >= 'a' && SourceCode[j] <= 'z') ||
-                                                      (SourceCode[j] >= '0' && SourceCode[j] <= '9') ||
-                                                      SourceCode[j] == '_'))
-                    {
-                        CurrentLexeme += SourceCode[j];
-                        j++;
-                    }
-                    i = j - 1;
-                    FindTokenClass(CurrentLexeme);
-                }
+                    int start = i;
+                    i++;
 
-                else if (CurrentChar >= '0' && CurrentChar <= '9')
-                {
-                    string CurrentLexeme = CurrentChar.ToString();
-                    j = i + 1;
-                    while (j < SourceCode.Length && (SourceCode[j] >= '0' && SourceCode[j] <= '9'))
+                    while (i < SourceCode.Length &&
+                           (IsLetter(SourceCode[i]) ||
+                            char.IsDigit(SourceCode[i]) ||
+                            SourceCode[i] == '_'))
                     {
-                        CurrentLexeme += SourceCode[j];
-                        j++;
-                    }
-                    i = j - 1;
-                    Tokens.Add(new Token { lex = CurrentLexeme, token_type = Token_Class.Constant });
-                }
-
-                else
-                {
-                    string CurrentLexeme = CurrentChar.ToString();
-
-                    if (CurrentChar == '.' && i + 1 < SourceCode.Length && SourceCode[i + 1] == '.')
-                    {
-                        CurrentLexeme = "..";
                         i++;
                     }
 
-                    FindTokenClass(CurrentLexeme);
+                    string lexeme =
+                        SourceCode.Substring(start, i - start);
+
+                    FindTokenClass(lexeme, SourceCode, start);
+                    continue;
+                }
+
+                // Integer and Float literals
+                if (char.IsDigit(current))
+                {
+                    int start = i;
+
+                    while (i < SourceCode.Length &&
+                           char.IsDigit(SourceCode[i]))
+                    {
+                        i++;
+                    }
+
+                    if (i + 1 < SourceCode.Length &&
+                        SourceCode[i] == '.' &&
+                        char.IsDigit(SourceCode[i + 1]))
+                    {
+                        i++;
+
+                        while (i < SourceCode.Length &&
+                               char.IsDigit(SourceCode[i]))
+                        {
+                            i++;
+                        }
+                    }
+
+                    if (i < SourceCode.Length &&
+                        (IsLetter(SourceCode[i]) ||
+                         SourceCode[i] == '_'))
+                    {
+                        while (i < SourceCode.Length &&
+                               (IsLetter(SourceCode[i]) ||
+                                char.IsDigit(SourceCode[i]) ||
+                                SourceCode[i] == '_'))
+                        {
+                            i++;
+                        }
+
+                        AddError(
+                            "Invalid identifier or number: " +
+                            SourceCode.Substring(start, i - start),
+                            SourceCode,
+                            start);
+
+                        continue;
+                    }
+
+                    string number =
+                        SourceCode.Substring(start, i - start);
+
+                    if (IsNumber(number))
+                    {
+                        Tokens.Add(new Token
+                        {
+                            lex = number,
+                            token_type = Token_Class.number
+                        });
+                    }
+                    else
+                    {
+                        AddError(
+                            "Invalid number: " + number,
+                            SourceCode,
+                            start);
+                    }
+
+                    continue;
+                }
+
+                // String literals
+                if (current == '"')
+                {
+                    int start = i;
+                    i++;
+                    bool closed = false;
+
+                    while (i < SourceCode.Length)
+                    {
+                        char ch = SourceCode[i];
+
+                        if (ch == '\n' || ch == '\r')
+                            break;
+
+                        if (ch == '\\')
+                        {
+                            if (i + 1 < SourceCode.Length &&
+                                SourceCode[i + 1] != '\n' &&
+                                SourceCode[i + 1] != '\r')
+                            {
+                                i += 2;
+                                continue;
+                            }
+
+                            i++;
+                            break;
+                        }
+
+                        if (ch == '"')
+                        {
+                            i++;
+                            closed = true;
+                            break;
+                        }
+
+                        i++;
+                    }
+
+                    string lexeme =
+                        SourceCode.Substring(start, i - start);
+
+                    if (closed && IsString(lexeme))
+                    {
+                        Tokens.Add(new Token
+                        {
+                            lex = lexeme,
+                            token_type = Token_Class.StringLiteral
+                        });
+                    }
+                    else
+                    {
+                        AddError(
+                            "Invalid or unclosed string: " + lexeme,
+                            SourceCode,
+                            start);
+                    }
+
+                    continue;
+                }
+
+                // Character literals
+                if (current == '\'')
+                {
+                    int start = i;
+                    i++;
+
+                    if (i < SourceCode.Length &&
+                        SourceCode[i] != '\n' &&
+                        SourceCode[i] != '\r' &&
+                        SourceCode[i] != '\'')
+                    {
+                        if (SourceCode[i] == '\\')
+                        {
+                            if (i + 1 < SourceCode.Length &&
+                                SourceCode[i + 1] != '\n' &&
+                                SourceCode[i + 1] != '\r')
+                            {
+                                i += 2;
+                            }
+                            else
+                            {
+                                i++;
+                            }
+                        }
+                        else
+                        {
+                            i++;
+                        }
+                    }
+
+                    bool closed =
+                        i < SourceCode.Length &&
+                        SourceCode[i] == '\'';
+
+                    if (closed)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        // Recover to the next quote or line break.
+                        while (i < SourceCode.Length &&
+                               SourceCode[i] != '\'' &&
+                               SourceCode[i] != '\n' &&
+                               SourceCode[i] != '\r')
+                        {
+                            i++;
+                        }
+
+                        if (i < SourceCode.Length &&
+                            SourceCode[i] == '\'')
+                        {
+                            i++;
+                        }
+                    }
+
+                    string lexeme =
+                        SourceCode.Substring(start, i - start);
+
+                    if (closed && IsChar(lexeme))
+                    {
+                        Tokens.Add(new Token
+                        {
+                            lex = lexeme,
+                            token_type = Token_Class.CharLiteral
+                        });
+                    }
+                    else
+                    {
+                        AddError(
+                            "Invalid or unclosed character: " + lexeme,
+                            SourceCode,
+                            start);
+                    }
+
+                    continue;
+                }
+
+                // Two-character operators and separators
+                if (i + 1 < SourceCode.Length)
+                {
+                    string twoChars = SourceCode.Substring(i, 2);
+
+                    if (Operators.ContainsKey(twoChars))
+                    {
+                        FindTokenClass(twoChars, SourceCode, i);
+                        i += 2;
+                        continue;
+                    }
+                }
+
+                // One-character operators and separators
+                string oneChar = current.ToString();
+
+                if (Operators.ContainsKey(oneChar))
+                {
+                    FindTokenClass(oneChar, SourceCode, i);
+                }
+                else
+                {
+                    AddError(
+                        "Unrecognized symbol: " + oneChar,
+                        SourceCode,
+                        i);
+                }
+
+                i++;
+            }
+        }
+
+        private void AddError(
+            string message,
+            string sourceCode,
+            int position)
+        {
+            int line = 1;
+            int column = 1;
+
+            for (int j = 0;
+                 j < position && j < sourceCode.Length;
+                 j++)
+            {
+                if (sourceCode[j] == '\n')
+                {
+                    line++;
+                    column = 1;
+                }
+                else if (sourceCode[j] != '\r')
+                {
+                    column++;
                 }
             }
 
+            Errors.Error_List.Add(
+                $"Line {line}, Column {column}: {message}");
         }
 
-        void FindTokenClass(string Lex)
+        private void FindTokenClass(
+            string lexeme,
+            string sourceCode,
+            int position)
         {
-            Token Tok = new Token();
-            Tok.lex = Lex;
+            Token token = new Token();
+            token.lex = lexeme;
 
-            if (ReservedWords.ContainsKey(Lex.ToUpper()))
+            if (ReservedWords.TryGetValue(
+                lexeme, out Token_Class reservedType))
             {
-                Tok.token_type = ReservedWords[Lex.ToUpper()];
+                token.token_type = reservedType;
+                Tokens.Add(token);
             }
-
-            else if (Operators.ContainsKey(Lex))
+            else if (IsIdentifier(lexeme))
             {
-                Tok.token_type = Operators[Lex];
+                token.token_type = Token_Class.Identifier;
+                Tokens.Add(token);
             }
-
-            else if (isIdentifier(Lex))
+            else if (Operators.TryGetValue(
+                lexeme, out Token_Class operatorType))
             {
-                Tok.token_type = Token_Class.Idenifier;
+                token.token_type = operatorType;
+                Tokens.Add(token);
             }
-
-            else if (isConstant(Lex))
-            {
-                Tok.token_type = Token_Class.Constant;
-            }
-
             else
             {
-                Tok.token_type = Token_Class.Idenifier;
+                AddError(
+                    "Unrecognized lexeme: " + lexeme,
+                    sourceCode,
+                    position);
             }
-
-            Tokens.Add(Tok);
         }
 
-        bool isIdentifier(string lex)
+        private bool IsIdentifier(string lexeme)
         {
-            if (string.IsNullOrEmpty(lex)) return false;
-            char first = lex[0];
-            if (!((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z') || first == '_'))
+            if (string.IsNullOrEmpty(lexeme))
                 return false;
 
-            for (int i = 1; i < lex.Length; i++)
+            if (!IsLetter(lexeme[0]) && lexeme[0] != '_')
+                return false;
+
+            for (int i = 1; i < lexeme.Length; i++)
             {
-                char c = lex[i];
-                if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_'))
+                if (!IsLetter(lexeme[i]) &&
+                    !char.IsDigit(lexeme[i]) &&
+                    lexeme[i] != '_')
+                {
                     return false;
+                }
             }
 
             return true;
         }
 
-        bool isConstant(string lex)
+        private bool IsLetter(char c)
         {
-            if (string.IsNullOrEmpty(lex)) return false;
-            foreach (char c in lex)
+            return (c >= 'A' && c <= 'Z') ||
+                   (c >= 'a' && c <= 'z');
+        }
+
+        private bool IsNumber(string lexeme)
+        {
+            if (string.IsNullOrEmpty(lexeme))
+                return false;
+
+            int i = 0;
+            bool hasIntegerDigit = false;
+            bool hasFractionDigit = false;
+
+            while (i < lexeme.Length &&
+                   char.IsDigit(lexeme[i]))
             {
-                if (c < '0' || c > '9') return false;
+                hasIntegerDigit = true;
+                i++;
             }
-            return true;
+
+            if (i < lexeme.Length && lexeme[i] == '.')
+            {
+                i++;
+
+                while (i < lexeme.Length &&
+                       char.IsDigit(lexeme[i]))
+                {
+                    hasFractionDigit = true;
+                    i++;
+                }
+            }
+
+            return i == lexeme.Length &&
+                   hasIntegerDigit &&
+                   (lexeme.IndexOf('.') == -1 ||
+                    hasFractionDigit);
+        }
+
+        private bool IsString(string lexeme)
+        {
+            return lexeme.Length >= 2 &&
+                   lexeme[0] == '"' &&
+                   lexeme[lexeme.Length - 1] == '"';
+        }
+
+        private bool IsChar(string lexeme)
+        {
+            if (lexeme.Length < 3 ||
+                lexeme[0] != '\'' ||
+                lexeme[lexeme.Length - 1] != '\'')
+            {
+                return false;
+            }
+
+            string content =
+                lexeme.Substring(1, lexeme.Length - 2);
+
+            return content.Length == 1 ||
+                   (content.Length == 2 && content[0] == '\\');
         }
     }
 }
